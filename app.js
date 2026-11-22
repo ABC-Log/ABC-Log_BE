@@ -1,10 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 
+const experiencesRouter = require('./routes/experiences');
+
 const app = express();
 
 app.use(cors()); // 프론트엔드(다른 주소)에서 이 서버로 요청할 수 있게 허용
 app.use(express.json()); // 요청 body의 JSON을 req.body 객체로 바꿔 준다
+
+app.use('/api/experiences', experiencesRouter);
 
 // 없는 주소로 요청했을 때
 app.use((req, res) => {
