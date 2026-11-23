@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 
+const usersRouter = require('./routes/users');
 const experiencesRouter = require('./routes/experiences');
 const conversionsRouter = require('./routes/conversions');
 const competenciesRouter = require('./routes/competencies');
@@ -12,6 +13,7 @@ const app = express();
 app.use(cors()); // 프론트엔드(다른 주소)에서 이 서버로 요청할 수 있게 허용
 app.use(express.json()); // 요청 body의 JSON을 req.body 객체로 바꿔 준다
 
+app.use('/api/users', usersRouter);
 app.use('/api/experiences', experiencesRouter);
 app.use('/api/conversions', conversionsRouter);
 app.use('/api/competencies', competenciesRouter);
