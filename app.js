@@ -5,6 +5,7 @@ const experiencesRouter = require('./routes/experiences');
 const conversionsRouter = require('./routes/conversions');
 const competenciesRouter = require('./routes/competencies');
 const jobsRouter = require('./routes/jobs');
+const laborGuidesRouter = require('./routes/laborGuides');
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use('/api/experiences', experiencesRouter);
 app.use('/api/conversions', conversionsRouter);
 app.use('/api/competencies', competenciesRouter);
 app.use('/api/jobs', jobsRouter);
+app.use('/api/labor-guides', laborGuidesRouter);
 
 // 없는 주소로 요청했을 때
 app.use((req, res) => {
