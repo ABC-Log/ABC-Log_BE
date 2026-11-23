@@ -234,4 +234,110 @@ router.delete('/:experienceId', (req, res) => {
   }
 });
 
+// 역량 변환: POST /api/experiences/exp_1/conversions
+// 업무 설명에 들어 있는 키워드를 변환 규칙과 비교해서 역량과 문장 초안을 만든다 (저장은 하지 않는다)
+router.post('/:experienceId/conversions', (req, res) => {
+  try {
+    const found = findExperience(req.params.experienceId);
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        code: 'EXPERIENCE_NOT_FOUND',
+        message: '해당 경험을 찾을 수 없습니다.',
+      });
+    }
+
+    if (found.description.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        code: 'CONVERSION_INPUT_INVALID',
+        message: '역량으로 변환할 수 있는 경험 정보가 부족합니다.',
+      });
+    }
+
+    // "고객 응대 및 주문 처리" -> ["고객 응대", "주문 처리"] 처럼 업무를 나눈다
+    const phrases = found.description
+      .split(/,|\.|\n| 및 /)
+      .map((phrase) => phrase.trim())
+      .filter((phrase) => phrase !== '');
+
+    const rules = db
+      .prepare('SELECT r.keyword, c.id, c.name FROM conversion_rules r JOIN competencies c ON r.competency_id = c.id ORDER BY c.id, r.id')
+      .all();
+
+    const competencies = [];
+    const evidences = [];
+    for (const rule of rules) {
+      const phrase = phrases.find((p) => p.includes(rule.keyword));
+      const alreadyAdded = competencies.find((c) => c.competencyId === rule.id);
+      if (!phrase || alreadyAdded) {
+        continue;
+      }
+
+      // 근거(evidence)는 사용자가 직접 쓴 문장을 그대로 사용한다 (없는 내용을 지어내지 않기 위해)
+      competencies.push({ competencyId: rule.id, name: rule.name, evidence: phrase });
+      if (!evidences.includes(phrase)) {
+        evidences.push(phrase);
+      }
+    }
+
+    if (competencies.length === 0) {
+      return res.json({
+        success: true,
+        message: '일치하는 역량을 찾지 못했습니다. 업무 내용을 더 구체적으로 적어 주세요.',
+        data: { competencies: [], draftSentence: '' },
+      });
+    }
+
+    const draftSentence = found.industry + ' 근무를 통해 ' + evidences.join(', ') + ' 경험을 쌓았습니다.';
+
+    res.json({
+      success: true,
+      message: '역량 변환이 완료되었습니다.',
+      data: { competencies: competencies, draftSentence: draftSentence },
+    });
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
+// 변환 결과 목록 조회: GET /api/experiences/exp_1/conversions
+router.get('/:experienceId/conversions', (req, res) => {
+  try {
+    const found = findExperience(req.params.experienceId);
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        code: 'EXPERIENCE_NOT_FOUND',
+        message: '해당 경험을 찾을 수 없습니다.',
+      });
+    }
+
+    const rows = db.prepare('SELECT * FROM conversions WHERE experience_id = ? ORDER BY id DESC').all(found.id);
+    const allCompetencies = db.prepare('SELECT id, name FROM competencies').all();
+
+    const data = rows.map((row) => {
+      // DB에는 '["comp_001"]' 같은 문자열로 저장되어 있어서 배열로 바꾼 뒤, 역량 이름을 붙인다
+      const competencyIds = JSON.parse(row.competency_ids);
+      const competencies = competencyIds.map((competencyId) => {
+        const competency = allCompetencies.find((c) => c.id === competencyId);
+        return { competencyId: competencyId, name: competency ? competency.name : null };
+      });
+
+      return {
+        conversionId: toId('conv', row.id),
+        competencies: competencies,
+        draftSentence: row.draft_sentence,
+        finalSentence: row.final_sentence,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+    });
+
+    res.json({ success: true, data: data });
+  } catch (error) {
+    sendServerError(res, error);
+  }
+});
+
 module.exports = router;
