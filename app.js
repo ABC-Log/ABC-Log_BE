@@ -3,6 +3,8 @@ const cors = require('cors');
 
 const experiencesRouter = require('./routes/experiences');
 const conversionsRouter = require('./routes/conversions');
+const competenciesRouter = require('./routes/competencies');
+const jobsRouter = require('./routes/jobs');
 
 const app = express();
 
@@ -11,6 +13,8 @@ app.use(express.json()); // 요청 body의 JSON을 req.body 객체로 바꿔 준
 
 app.use('/api/experiences', experiencesRouter);
 app.use('/api/conversions', conversionsRouter);
+app.use('/api/competencies', competenciesRouter);
+app.use('/api/jobs', jobsRouter);
 
 // 없는 주소로 요청했을 때
 app.use((req, res) => {
