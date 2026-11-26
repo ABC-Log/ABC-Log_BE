@@ -1,9 +1,10 @@
 -- ABCLog 테이블 만들기 (SQLite)
 -- 주의: 다시 실행하면 기존 테이블과 데이터가 모두 지워지고 새로 만들어진다.
--- 참고: SQLite에는 JSON, BOOLEAN, DATE 타입이 따로 없어서
---       목록은 TEXT에 JSON 문자열로, true/false는 INTEGER 1/0으로, 날짜는 TEXT '2026-01-01'로 저장한다.
+-- SQLite에는 JSON, BOOLEAN, DATE 타입이 없어 TEXT와 INTEGER로 저장한다.
 
 DROP TABLE IF EXISTS conversions;
+DROP TABLE IF EXISTS auth_tokens;
+DROP TABLE IF EXISTS refresh_tokens;
 DROP TABLE IF EXISTS conversion_rules;
 DROP TABLE IF EXISTS experiences;
 DROP TABLE IF EXISTS jobs;
@@ -15,7 +16,7 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL, -- 지금은 암호화 없이 저장 (나중에 bcrypt 등으로 암호화 필요)
+  password TEXT NOT NULL, -- 비밀번호 해시
   name TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now', 'localtime'))
 );
@@ -29,6 +30,7 @@ CREATE TABLE experiences (
   started_at TEXT NOT NULL,         -- 예: '2026-01-01'
   ended_at TEXT,                    -- 재직 중이면 NULL
   is_current INTEGER NOT NULL DEFAULT 0, -- 재직 중이면 1, 아니면 0
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at TEXT DEFAULT (datetime('now', 'localtime')),
   updated_at TEXT DEFAULT (datetime('now', 'localtime'))
 );
@@ -78,4 +80,26 @@ CREATE TABLE conversions (
   created_at TEXT DEFAULT (datetime('now', 'localtime')),
   updated_at TEXT DEFAULT (datetime('now', 'localtime')),
   FOREIGN KEY (experience_id) REFERENCES experiences(id) ON DELETE CASCADE
+);
+
+-- 로그인 토큰은 해시와 만료 시간만 저장한다
+CREATE TABLE auth_tokens (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  session_id TEXT,
+  expires_at TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now', 'localtime')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- refresh 토큰은 교체 이력을 남겨 재사용을 확인한다
+CREATE TABLE refresh_tokens (
+  token_hash TEXT PRIMARY KEY,
+  family_id TEXT NOT NULL,
+  user_id INTEGER NOT NULL,
+  expires_at TEXT NOT NULL,
+  revoked_at TEXT,
+  replaced_by_hash TEXT,
+  created_at TEXT DEFAULT (datetime('now', 'localtime')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

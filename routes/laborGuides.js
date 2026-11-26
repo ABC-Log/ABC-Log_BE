@@ -4,7 +4,7 @@ const { sendServerError } = require('../helpers');
 
 const router = express.Router();
 
-// 지원하는 점검 주제: 근로계약서, 임금명세서, 임금, 근무시간, 휴게시간
+// 조회할 수 있는 근로 안내 주제
 const TOPICS = ['contract', 'payslip', 'wage', 'workHours', 'breakTime'];
 
 // 근로조건 점검 정보 조회: GET /api/labor-guides 또는 GET /api/labor-guides?topic=wage

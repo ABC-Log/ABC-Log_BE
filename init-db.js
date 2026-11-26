@@ -1,5 +1,4 @@
-// sql/schema.sql 과 sql/seed.sql 을 실행해서 DB를 처음 상태로 만든다
-// 실행: npm run db:init
+// 스키마와 기준 데이터로 DB를 초기화한다
 const fs = require('fs');
 const path = require('path');
 const db = require('./db');
